@@ -14,91 +14,146 @@ import (
 
 // type
 
+// Frames can be generated with arbitrary aspect ratios, whose definition is
+// given below. They represent a magnification of the underlying matrix by 1:X
+// and 1:Y
+type AspectRatio struct {
+	X, Y int
+}
+
+// Generation
+// ----------------------------------------------------------------------------
+
+// type
+
 // A generation, consists of a specification of those cells that are alive and
-// those that are dead. Since this implementation acknowledges colors these are
-// represented as indexes to a palette. Additionally, the dimensions of the
-// rectangle that circumscribes the generation is stored also. This all comes to
-// define generations as paletted images
-type generation image.Paletted
+// those that are dead over a bidimensional matrix which is subjected to an
+// aspect ratio.
+//
+// Since this implementation acknowledges colors these are represented as
+// indexes to a palette. Additionally, the dimensions of the rectangle that
+// circumscribes the generation is stored also. This all comes to define
+// generations as paletted images along with information of the aspect ratio
+type generation struct {
+	img   image.Paletted
+	ratio AspectRatio
+}
 
 // methods
 
 // return a new generation which is initially empty. Since this implementation
 // honours colors, the contents are stored as indexes to a color palette
-func NewGeneration(rectangle image.Rectangle, palette color.Palette) *generation {
+func NewGeneration(rectangle image.Rectangle,
+	palette color.Palette,
+	ratio AspectRatio) *generation {
 
 	// compute the number of pixels to use
-	nbpixels := (1 + rectangle.Max.Y - rectangle.Min.Y) *
-		(1 + rectangle.Max.X - rectangle.Min.X)
+	nbpixels := (1 + rectangle.Max.Y) * ratio.Y *
+		(1 + rectangle.Max.X) * ratio.X
 
 	// note that in creation, room is allocated for storing the contents but
-	// these are all empty
-	return &generation{Pix: make([]uint8, nbpixels),
-		Stride:  rectangle.Max.X,
-		Rect:    rectangle,
-		Palette: palette}
+	// these are all empty. The true size of the underling image is:
+	//
+	// (1 + rectangle.Max.X) * ratio.X wide
+	//
+	// (1 + rectangle.Max.Y) * ratio.Y tall
+	//
+	// where the minimum values of the rectangle are just ignored
+	return &generation{
+		img: image.Paletted{
+			Pix:    make([]uint8, nbpixels),
+			Stride: 1 + (rectangle.Max.X-rectangle.Min.X)*ratio.X,
+			Rect: image.Rectangle{
+				Min: image.Point{
+					X: rectangle.Min.X * ratio.X,
+					Y: rectangle.Min.Y * ratio.Y},
+				Max: image.Point{
+					X: rectangle.Max.X * ratio.X,
+					Y: rectangle.Max.Y * ratio.Y}},
+			Palette: palette},
+		ratio: ratio}
+}
+
+// Get the color index at location (x, y) taking into account the aspect ratio
+// of this generation
+func (g *generation) ColorIndexAt(x, y int) uint8 {
+
+	// note that all pixels in the underlying image corresponding to the same
+	// cell are assumed to be coloured with the same index of the palette!
+	return g.img.ColorIndexAt(x*g.ratio.X, y*g.ratio.Y)
+}
+
+// Set the color index at location (x, y) taking into account the aspect ratio
+// of this generation
+func (g *generation) SetColorIndex(x, y int, color uint8) {
+
+	for xoffset := 0; xoffset < g.ratio.X; xoffset++ {
+		for yoffset := 0; yoffset < g.ratio.Y; yoffset++ {
+			g.img.SetColorIndex(x*g.ratio.X+xoffset, y*g.ratio.Y+yoffset, color)
+		}
+	}
 }
 
 // return the number of cells alive around the given position
 func (g *generation) nbalive(x, y int) (result int) {
 
-	// cast the generation into an image paletted to access its methods
-	img := image.Paletted(*g)
+	// transform the given coordinates according to the aspect ratio
+	xt, yt := x*g.ratio.X, y*g.ratio.Y
 
 	// if (x, y) is not at the top row
-	if y < img.Rect.Max.Y {
+	if yt < g.img.Rect.Max.Y {
 
-		if img.ColorIndexAt(x, y+1) != 0 {
+		if g.ColorIndexAt(x, y+1) != 0 {
 			result += 1
 		}
 
 		// if this is not the leftmost column
-		if x > 0 {
-			if img.ColorIndexAt(x-1, y+1) != 0 {
+		if xt > 0 {
+			if g.ColorIndexAt(x-1, y+1) != 0 {
 				result += 1
 			}
 		}
 
 		// if this is not the rightmost column
-		if x < img.Rect.Max.X {
-			if img.ColorIndexAt(x+1, y+1) != 0 {
+		if xt < g.img.Rect.Max.X {
+			if g.ColorIndexAt(x+1, y+1) != 0 {
 				result += 1
 			}
 		}
 	}
 
 	// if (x, y) is not at the bottom row
-	if y > 0 {
+	if yt > 0 {
 
-		if img.ColorIndexAt(x, y-1) != 0 {
+		if g.ColorIndexAt(x, y-1) != 0 {
 			result += 1
 		}
 
 		// if this is not the leftmost column
-		if x > 0 {
-			if img.ColorIndexAt(x-1, y-1) != 0 {
+		if xt > 0 {
+			if g.ColorIndexAt(x-1, y-1) != 0 {
 				result += 1
 			}
 		}
 
 		// if this is not the rightmost column
-		if x < img.Rect.Max.X {
-			if img.ColorIndexAt(x+1, y-1) != 0 {
+		if xt < g.img.Rect.Max.X {
+			if g.ColorIndexAt(x+1, y-1) != 0 {
 				result += 1
 			}
 		}
 	}
 
 	// if (x,y) is not at the leftmost column
-	if x > 0 {
-		if img.ColorIndexAt(x-1, y) != 0 {
+	if xt > 0 {
+		if g.ColorIndexAt(x-1, y) != 0 {
 			result += 1
 		}
 	}
 
 	// if (x,y) is not at the rightmost column
-	if x < img.Rect.Max.X {
-		if img.ColorIndexAt(x+1, y) != 0 {
+	if xt < g.img.Rect.Max.X {
+		if g.ColorIndexAt(x+1, y) != 0 {
 			result += 1
 		}
 	}
@@ -113,17 +168,14 @@ func (g *generation) Next() *generation {
 	// create a new generation with the same dimensions and palette than this
 	// one
 	next := NewGeneration(image.Rectangle{
-		Min: image.Point{X: 0, Y: 0},
-		Max: image.Point{X: g.Rect.Max.X, Y: g.Rect.Max.Y}},
-		g.Palette)
-
-	// cast both generations into an image paletted to access its methods
-	img := image.Paletted(*g)
-	nxt := image.Paletted(*next)
+		Min: image.Point{X: g.img.Rect.Min.X / g.ratio.X, Y: g.img.Rect.Min.Y / g.ratio.Y},
+		Max: image.Point{X: g.img.Rect.Max.X / g.ratio.X, Y: g.img.Rect.Max.Y / g.ratio.Y}},
+		g.img.Palette,
+		AspectRatio{X: g.ratio.X, Y: g.ratio.Y})
 
 	// for all cells in this generation
-	for x := 0; x <= g.Rect.Max.X; x++ {
-		for y := 0; y <= g.Rect.Max.Y; y++ {
+	for x := 0; x <= g.img.Rect.Max.X/g.ratio.X; x++ {
+		for y := 0; y <= g.img.Rect.Max.Y/g.ratio.Y; y++ {
 
 			// get the number of cells alive around cell (x, y)
 			alive := g.nbalive(x, y)
@@ -134,14 +186,14 @@ func (g *generation) Next() *generation {
 
 			// -- survival: Any live cell with two or three live neighbors
 			// survives
-			if img.ColorIndexAt(x, y) != 0 && (alive == 2 || alive == 3) {
-				nxt.SetColorIndex(x, y, 1)
+			if g.ColorIndexAt(x, y) != 0 && (alive == 2 || alive == 3) {
+				next.SetColorIndex(x, y, 1)
 			}
 
 			// -- birth: Any dead cell with three live neighbors becomes a live
 			// cell
-			if img.ColorIndexAt(x, y) == 0 && alive == 3 {
-				nxt.SetColorIndex(x, y, 1)
+			if g.ColorIndexAt(x, y) == 0 && alive == 3 {
+				next.SetColorIndex(x, y, 1)
 			}
 		}
 	}
@@ -154,50 +206,23 @@ func (g *generation) Next() *generation {
 // given slice and the length of the contents do not match an error is returned
 func (g *generation) Set(contents []bool) error {
 
-	if len(contents) != (1+g.Rect.Max.Y-g.Rect.Min.Y)*
-		(1+g.Rect.Max.X-g.Rect.Min.X) {
+	if len(contents) != (1+g.img.Rect.Max.Y/g.ratio.Y-g.img.Rect.Min.Y/g.ratio.Y)*
+		(1+g.img.Rect.Max.X/g.ratio.X-g.img.Rect.Min.X/g.ratio.X) {
 		return errors.New("Mismatched dimensions")
 	}
 
-	// cast the generation into an image paletted to access its methods
-	img := (*image.Paletted)(g)
-
 	// otherwise, just set the contents of the generation to those given in the
 	// slice
-	for x := 0; x <= img.Rect.Max.X; x++ {
-		for y := 0; y <= img.Rect.Max.Y; y++ {
-			if contents[y*(img.Rect.Max.X)+x] {
-				img.SetColorIndex(x, y, 1)
+	for x := 0; x <= g.img.Rect.Max.X/g.ratio.X; x++ {
+		for y := 0; y <= g.img.Rect.Max.Y/g.ratio.Y; y++ {
+			if contents[y*(g.img.Rect.Max.X/g.ratio.X)+x] {
+				g.SetColorIndex(x, y, 1)
 			}
 		}
 	}
 
 	// and return no error
 	return nil
-}
-
-// Generations are stringers also so that they can be displayed on an output
-// stream
-func (g generation) String() (output string) {
-
-	// cast the generation into an image paletted to access its methods
-	img := image.Paletted(g)
-
-	for irow := 0; irow <= g.Rect.Max.Y; irow++ {
-		for icol := 0; icol <= g.Rect.Max.X; icol++ {
-
-			if img.ColorIndexAt(icol, irow) != 0 {
-				output += "█"
-			} else {
-				output += "░"
-			}
-		}
-
-		// and move to the next line
-		output += "\n"
-	}
-
-	return output
 }
 
 // Conway
@@ -263,7 +288,7 @@ func (game *Conway) GetGIF(delay0, delay int) gif.GIF {
 		} else {
 			delays[index] = delay
 		}
-		images[index] = (*image.Paletted)(generation)
+		images[index] = (*image.Paletted)(&generation.img)
 	}
 
 	// and now return the GIF image

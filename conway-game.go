@@ -30,12 +30,13 @@ const version = "0.1"
 
 // flag parameters
 var (
-	filename      string
-	width, height int
-	delay, delay0 int
-	population    int
-	nbgenerations int
-	want_version  bool
+	filename       string
+	width, height  int
+	xratio, yratio int
+	delay, delay0  int
+	population     int
+	nbgenerations  int
+	want_version   bool
 )
 
 // functions
@@ -52,6 +53,10 @@ func init() {
 	// command line arguments for parsing the dimensions of the grid
 	flag.IntVar(&width, "width", 100, "Width of the grid")
 	flag.IntVar(&height, "height", 100, "Height of the grid")
+
+	// command line arguments for parsing the aspect ratio
+	flag.IntVar(&xratio, "xratio", 1, "x aspect ratio")
+	flag.IntVar(&yratio, "yratio", 1, "y aspect ratio")
 
 	// command line argument for parsing the delays between frames
 	flag.IntVar(&delay0, "delay0", 100, "delay of the first frame")
@@ -109,9 +114,10 @@ func main() {
 	initial := conway.NewGeneration(image.Rectangle{
 		Min: image.Point{X: 0, Y: 0},
 		Max: image.Point{X: width, Y: height}},
-		[]color.Color{color.RGBA{0, 0, 0, 255}, color.RGBA{0, 255, 0, 255}})
+		[]color.Color{color.RGBA{0, 0, 0, 255}, color.RGBA{0, 255, 0, 255}},
+		conway.AspectRatio{X: xratio, Y: yratio})
 	if ok := initial.Set(contents); ok != nil {
-		log.Fatal(" It was not possible to initialize the first generation")
+		log.Fatalf(" It was not possible to initialize the first generation: %v", ok)
 	}
 
 	// Create a Conway's Game with this phase
