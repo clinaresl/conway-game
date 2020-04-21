@@ -32,7 +32,7 @@ const version = "0.1"
 var (
 	filename      string
 	width, height int
-	delay         int
+	delay, delay0 int
 	population    int
 	nbgenerations int
 	want_version  bool
@@ -53,7 +53,8 @@ func init() {
 	flag.IntVar(&width, "width", 100, "Width of the grid")
 	flag.IntVar(&height, "height", 100, "Height of the grid")
 
-	// command line argument for parsing the delay between frames
+	// command line argument for parsing the delays between frames
+	flag.IntVar(&delay0, "delay0", 100, "delay of the first frame")
 	flag.IntVar(&delay, "delay", 1, "delay between frames in 100th of a second")
 
 	// command line argument to determine the initial number of alive cells
@@ -120,7 +121,7 @@ func main() {
 	game.Run()
 
 	// get the image of the entire Conway's game
-	anim := game.GetGIF(delay)
+	anim := game.GetGIF(delay0, delay)
 
 	f, err := os.Create(filename)
 	if err != nil {

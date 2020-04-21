@@ -248,8 +248,9 @@ func (game *Conway) Run() {
 }
 
 // return a gif animation of the Conway's Game with the given delay in 100th of
-// a second between frames
-func (game *Conway) GetGIF(delay int) gif.GIF {
+// a second between frames, and an initial delay equal to delay0 100th of a
+// second
+func (game *Conway) GetGIF(delay0, delay int) gif.GIF {
 
 	// create an array of images and delays between successive frames
 	var delays []int = make([]int, game.nbgenerations)
@@ -257,7 +258,11 @@ func (game *Conway) GetGIF(delay int) gif.GIF {
 
 	// transform each generation of the game into a paletted image
 	for index, generation := range game.generations {
-		delays[index] = delay
+		if index == 0 {
+			delays[index] = delay0
+		} else {
+			delays[index] = delay
+		}
 		images[index] = (*image.Paletted)(generation)
 	}
 
