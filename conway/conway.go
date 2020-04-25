@@ -91,11 +91,11 @@ func (g *generation) ColorIndexAt(x, y int) uint8 {
 
 // Set the color index at location (x, y) taking into account the aspect ratio
 // of this generation
-func (g *generation) SetColorIndex(x, y int, color uint8) {
+func (g *generation) SetColorIndex(x, y int, c uint8) {
 
 	for xoffset := 0; xoffset < g.ratio.X; xoffset++ {
 		for yoffset := 0; yoffset < g.ratio.Y; yoffset++ {
-			g.img.SetColorIndex(x*g.ratio.X+xoffset, y*g.ratio.Y+yoffset, color)
+			g.img.SetColorIndex(x*g.ratio.X+xoffset, y*g.ratio.Y+yoffset, c)
 		}
 	}
 }
@@ -181,15 +181,19 @@ func (g *generation) Next() *generation {
 		1+g.nbgeneration,
 		g.nbgenerations)
 
+	// compute the color to use for the living cells in this generation. Due to
+	// IEEE 754 make sure that the last index is used
+	c := 1 + uint8(g.nbgeneration*255.0/g.nbgenerations)
+	if c > 255 {
+		c = 255
+	}
+
 	// for all cells in this generation
 	for x := 0; x <= g.img.Rect.Max.X/g.ratio.X; x++ {
 		for y := 0; y <= g.img.Rect.Max.Y/g.ratio.Y; y++ {
 
 			// get the number of cells alive around cell (x, y)
 			alive := g.nbalive(x, y)
-
-			// compute the color to use for the living cells in this generation
-			c := uint8(g.nbgeneration * 255 / g.nbgenerations)
 
 			// by default, the next generation is empty, i.e., all of them are
 			// dead and thus, the only rules considered are those that make some
