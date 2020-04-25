@@ -91,10 +91,16 @@ func showModelHelp(signal int) {
 	fmt.Println(`
  In all cases colors are given in the format #RRGGBB in hexadecimal format:
 
-   -model "bichrome COLOR[COLOR]"
+   -model "bichrome COLOR[:COLOR]"
 		If only one color is given, dead cells are shown in black, and living cells
 		with the specified color. If two colors are given, then they are used for
 		dead and living cells respectively
+
+   -model "gradient COLOR:COLOR[:COLOR]"
+		In case two colors are given, the first is used for dead cells and the living
+		cells are used with a gradient of color from black to the given color; if three
+		colors are given, then the gradient is computed from the second to the third
+		color
 `)
 	os.Exit(signal)
 }
@@ -120,6 +126,18 @@ func parseHex(hexnum string) uint8 {
 	return uint8(result)
 }
 
+// getRGB
+//
+// return the RGB components of a RGB color as uint8
+func getRGB(c color.Color) (r, g, b uint8) {
+
+	// get the rgb components as uint32
+	r2, g2, b2, _ := c.RGBA()
+
+	// and transform them now
+	return uint8(r2), uint8(g2), uint8(b2)
+}
+
 // getColor
 //
 // return a color from an hexadecimal representation #RRGGBB
@@ -133,42 +151,62 @@ func getColor(hexcolor string) color.Color {
 	return color.RGBA{parseHex(match[1]), parseHex(match[2]), parseHex(match[3]), 255}
 }
 
+// getGradientPalette
+//
+// return the palette of colors to use for gradient palettes. It receives a
+// slice of strings which is the output of regexp matching the color model with
+// the user specification
+func getGradientPalette(match []string) (gpalette []color.Color) {
+
+	// extract all colors
+	first, second, third := getColor(match[2]), getColor(match[3]), getColor(match[4])
+
+	// get the rgb components of the second and third color
+	r2, g2, b2 := getRGB(second)
+	r3, g3, b3 := getRGB(third)
+
+	// insert the color used for dead cells as first in the palette
+	gpalette = append(gpalette, first)
+
+	// now, create a gradient of colors from the second to the third
+	for i := 1.0; i <= 255.0; i++ {
+
+		// and add an intermediate color
+		r, g, b := uint8(float64(r2)+(i*(float64(r3)-float64(r2))/255.0)),
+			uint8(float64(g2)+(i*(float64(g3)-float64(g2))/255.0)),
+			uint8(float64(b2)+(i*(float64(b3)-float64(b2))/255.0))
+
+		gpalette = append(gpalette, color.RGBA{r, g, b, 255})
+	}
+
+	// and return the palette of colors
+	return
+}
+
 // getPalette
 //
 // gets a palette from the colour model provided by the user
 func getPalette(model string) ([]color.Color, error) {
 
-	fmt.Printf(" model: %v\n", model)
-
-	// set up a regular expression to match color model specifications
-	re := regexp.MustCompile(`\s*(bichrome)\s+(\#[a-fA-F0-9]{6})(:\#[a-fA-F0-9]{6})?$`)
+	// set up a regular expression to match the color model specifications
+	re := regexp.MustCompile(`\s*(gradient)\s+(\#[a-fA-F0-9]{6}):(\#[a-fA-F0-9]{6}):(\#[a-fA-F0-9]{6})$`)
 
 	// and match the given color model
 	match := re.FindStringSubmatch(model)
-	fmt.Printf("%q\n", match)
-	if len(match) != 4 {
+	if len(match) != 5 {
 		return []color.Color{},
 			errors.New("Syntax error in the specification of the color model")
 	}
 
-	// if the color model was successfully parsed, then extract the first color
-	first := getColor(match[2])
-
-	// if a second color was given then extract it as well
-	second := color.RGBA{0, 0, 0, 255}
-	if match[3] != "" {
-
-		// then get the second color after removing the heading colon
-		second := getColor(match[3][1:])
-
-		// and return a palette with these two colors using the first for dead
-		// cells and the second for living cells
-		return []color.Color{first, second}, nil
+	// and apply the given color model
+	switch {
+	case match[1] == "gradient":
+		return getGradientPalette(match), nil
 	}
 
-	// otherwise, return a palette using black (which is the second one in case
-	// it was not given) as the color for dead cells
-	return []color.Color{second, first}, nil
+	// in case the previous switch did not return a palette then an error
+	// occurred
+	return []color.Color{}, errors.New("Unknown model specification")
 }
 
 // main function
@@ -218,7 +256,8 @@ func main() {
 		Min: image.Point{X: 0, Y: 0},
 		Max: image.Point{X: width, Y: height}},
 		palette,
-		conway.AspectRatio{X: xratio, Y: yratio})
+		conway.AspectRatio{X: xratio, Y: yratio},
+		1, nbgenerations)
 	if ok := initial.Set(contents); ok != nil {
 		log.Fatalf(" It was not possible to initialize the first generation: %v", ok)
 	}

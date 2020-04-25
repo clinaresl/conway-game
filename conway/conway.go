@@ -28,24 +28,28 @@ type AspectRatio struct {
 
 // A generation, consists of a specification of those cells that are alive and
 // those that are dead over a bidimensional matrix which is subjected to an
-// aspect ratio.
+// aspect ratio. Each generation has an index running in the range [1,
+// nbgenerations]
 //
 // Since this implementation acknowledges colors these are represented as
 // indexes to a palette. Additionally, the dimensions of the rectangle that
 // circumscribes the generation is stored also. This all comes to define
 // generations as paletted images along with information of the aspect ratio
 type generation struct {
-	img   image.Paletted
-	ratio AspectRatio
+	img                         image.Paletted
+	ratio                       AspectRatio
+	nbgeneration, nbgenerations int
 }
 
 // methods
 
 // return a new generation which is initially empty. Since this implementation
-// honours colors, the contents are stored as indexes to a color palette
+// honours colors, the contents are stored as indexes to a color palette. The
+// new generation is given index nbgeneration among nbgenerations
 func NewGeneration(rectangle image.Rectangle,
 	palette color.Palette,
-	ratio AspectRatio) *generation {
+	ratio AspectRatio,
+	nbgeneration, nbgenerations int) *generation {
 
 	// compute the number of pixels to use
 	nbpixels := (1 + rectangle.Max.Y) * ratio.Y *
@@ -71,7 +75,9 @@ func NewGeneration(rectangle image.Rectangle,
 					X: rectangle.Max.X * ratio.X,
 					Y: rectangle.Max.Y * ratio.Y}},
 			Palette: palette},
-		ratio: ratio}
+		ratio:         ratio,
+		nbgeneration:  nbgeneration,
+		nbgenerations: nbgenerations}
 }
 
 // Get the color index at location (x, y) taking into account the aspect ratio
@@ -171,7 +177,9 @@ func (g *generation) Next() *generation {
 		Min: image.Point{X: g.img.Rect.Min.X / g.ratio.X, Y: g.img.Rect.Min.Y / g.ratio.Y},
 		Max: image.Point{X: g.img.Rect.Max.X / g.ratio.X, Y: g.img.Rect.Max.Y / g.ratio.Y}},
 		g.img.Palette,
-		AspectRatio{X: g.ratio.X, Y: g.ratio.Y})
+		AspectRatio{X: g.ratio.X, Y: g.ratio.Y},
+		1+g.nbgeneration,
+		g.nbgenerations)
 
 	// for all cells in this generation
 	for x := 0; x <= g.img.Rect.Max.X/g.ratio.X; x++ {
@@ -180,6 +188,9 @@ func (g *generation) Next() *generation {
 			// get the number of cells alive around cell (x, y)
 			alive := g.nbalive(x, y)
 
+			// compute the color to use for the living cells in this generation
+			c := uint8(g.nbgeneration * 255 / g.nbgenerations)
+
 			// by default, the next generation is empty, i.e., all of them are
 			// dead and thus, the only rules considered are those that make some
 			// cells take birth or survive
@@ -187,13 +198,13 @@ func (g *generation) Next() *generation {
 			// -- survival: Any live cell with two or three live neighbors
 			// survives
 			if g.ColorIndexAt(x, y) != 0 && (alive == 2 || alive == 3) {
-				next.SetColorIndex(x, y, 1)
+				next.SetColorIndex(x, y, c)
 			}
 
 			// -- birth: Any dead cell with three live neighbors becomes a live
 			// cell
 			if g.ColorIndexAt(x, y) == 0 && alive == 3 {
-				next.SetColorIndex(x, y, 1)
+				next.SetColorIndex(x, y, c)
 			}
 		}
 	}
