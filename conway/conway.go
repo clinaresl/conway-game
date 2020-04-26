@@ -268,7 +268,11 @@ func (g *generation) Next() *generation {
 	// compute the color to use for the living cells in this generation in case
 	// this generation uses the gradient color model
 	if g.model == "gradient" {
-		c = uint8(g.nbgeneration * 255.0 / g.nbgenerations)
+		if 1+uint8(g.nbgeneration*255.0/g.nbgenerations) > 255 {
+			c = 255
+		} else {
+			c = 1 + uint8(g.nbgeneration*255.0/g.nbgenerations)
+		}
 	}
 
 	// for all cells in this generation
@@ -334,7 +338,11 @@ func (g *generation) Set(contents []bool) error {
 	// compute the color to use for the living cells in this generation in case
 	// this generation uses the gradient color model
 	if g.model == "gradient" {
-		c = uint8(g.nbgeneration * 255.0 / g.nbgenerations)
+		if 1+uint8(g.nbgeneration*255.0/g.nbgenerations) > 255 {
+			c = 255
+		} else {
+			c = 1 + uint8(g.nbgeneration*255.0/g.nbgenerations)
+		}
 	}
 
 	// otherwise, just set the contents of the generation to those given in the
