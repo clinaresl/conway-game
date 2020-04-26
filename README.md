@@ -39,7 +39,9 @@ images which are stored in the file specified with `--filename`. It randomly
 locates an arbitrary number of living cells (specified with `--population`) over
 a grid of dimensions *width* and *height* (which are specified with the flags
 `--width` and `--height` respectively) and applies the rules of the Game of Life
-(*Conway's Game*) for the number of generations given in `--generations`:
+(*Conway's Game*) for the number of **generations** given in `--generations`,
+described in the
+[Wikipedia](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) as follows:
 
 1. Any live cell with fewer than two live neighbours dies, as if by
    *underpopulation*.
@@ -63,8 +65,25 @@ It also provides the following functionalities:
 * It acknowledges various *color models* through `--model`. To get a complete
   overview of the different colour models use `--help-model`.
 
+* Finally, to give a sense of *evolution*, it is also feasible to compute the
+  average of colors of the same cell over an arbitrary number of consecutive
+  generations with `--average`.
+
+
 ## Examples
 
+The most basic of all examples is given below:
+
+``` sh
+./conway-game --filename test.gif --generations 100 --width 50 --height 50 
+              --population 720 --xratio 10 --yratio 10 
+              --model "gradient #000000:#00ff00:#00ff00"
+```
+
+which produces an old-fashioned image with big pixels, live cells shown in green
+and the background in black:
+
+![Example 0](pics/example-0.gif)
 
 
 # License #
