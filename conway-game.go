@@ -29,7 +29,7 @@ import (
 const EXIT_SUCCESS = 0
 const EXIT_FAILURE = 1
 
-const version = "0.1"
+const version = "1.0"
 
 // flag parameters
 var (
@@ -95,16 +95,18 @@ func showModelHelp(signal int) {
 	fmt.Println(`
  In all cases colors are given in the format #RRGGBB in hexadecimal format:
 
-   -model "bichrome COLOR[:COLOR]"
-		If only one color is given, dead cells are shown in black, and living cells
-		with the specified color. If two colors are given, then they are used for
-		dead and living cells respectively
+   -model "gradient COLOR:COLOR:COLOR"
+		It creates an animated GIF where living cells are given an intermediate color
+		between the second and third
 
-   -model "gradient COLOR:COLOR[:COLOR]"
-		In case two colors are given, the first is used for dead cells and the living
-		cells are used with a gradient of color from black to the given color; if three
-		colors are given, then the gradient is computed from the second to the third
-		color
+   -model "radial COLOR:COLOR:COLOR;x,y"
+		It colors living cells according to the distance to a center given with (x, y).
+		Closer living cells get colors close to the second one; those far from it get
+		closer to the third color
+
+ In all cases, the first color is used for dead cells.
+
+ The file README.md contains various examples of usage
 `)
 	os.Exit(signal)
 }
