@@ -31,6 +31,15 @@ and the executable `conway-game` will be generated. You can test it with:
 $ ./conway-game --version
 ```
 
+To access the documentation of this package run `godoc`:
+
+```sh
+$ godoc -http "localhost:8080"
+```
+
+and access to the URL `localhost:8080` with your favourite browser (hopefully
+[Firefox](https://www.mozilla.org/en-US/firefox/new/))
+
 
 ## Usage
 
@@ -98,6 +107,42 @@ modifies the aspect ratio so that cells are four times larger than wider than
 tall:
 
 ![Example 1](pics/example-1.gif)
+
+Just by making the color of the first generation equal to the background and
+using a different color for the last frame, it is possible to create a *fade-in*
+effect with the color model *gradient*:
+
+```sh
+/conway-game --filename test.gif --generations 300 --width 300 --height 300 
+             --population 25000 --xratio 2 --yratio 2 
+             --model "gradient #000044:#000044:#ff0000"
+```
+
+![Example 2](pics/example-2.gif)
+
+Conversely, it is also possible to create a *fade-out* effect under the same
+color model just by inverting the second and third color as follows:
+
+```sh
+/conway-game --filename test.gif --generations 300 --width 300 --height 300 
+             --population 25000 --xratio 2 --yratio 2 
+             --model "gradient #000044:#ff0000:#000044"
+```
+
+![Example 3](pics/example-3.gif)
+
+But it is of course fine to move gradually between any arbitrary combinations of
+red, green and blue as shown below:
+
+```sh
+./conway-game --filename test.gif --generations 300 --width 300 --height 300 
+              --population 25000 --xratio 2 --yratio 2 
+              --model "gradient #000033:#ff0000:#ffff00"
+```
+
+![Example 4](pics/example-4.gif)
+
+
 
 # License #
 
