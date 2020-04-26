@@ -63,6 +63,40 @@ func EuclideanDistance(p1, p2 image.Point) float64 {
 		math.Pow(float64(p1.Y-p2.Y), 2))
 }
 
+// getInterval
+//
+// return the first and last indices (both included) to consider over the
+// straight line [min, max] of integers so that they comprise n values ending at
+// i
+func getInterval(min, max, i, n int) (int, int) {
+
+	// no error-checking is performed as this function is used for getting the
+	// exact generations to use when averaging
+
+	// if i is too short to accomodate n integers, then return the widest
+	// feasible interval
+	if i < min+n {
+		return min, i
+	}
+
+	// in the general case just return an interval with n positions ending at i
+	return 1 + i - n, i
+}
+
+// getAverage
+//
+// return the average of all numbers given in a slice of uint8. This function
+// specifically take care of the fact that numbers are unsigned int8 and returns
+// a value of the same type ---instead of a floating-point number
+func getAverage(numbers []uint8) uint8 {
+
+	average := 0.0
+	for _, value := range numbers {
+		average += float64(value)
+	}
+	return uint8(average / float64(len(numbers)))
+}
+
 // Generation
 // ----------------------------------------------------------------------------
 
@@ -427,8 +461,10 @@ func (game *Conway) Run() {
 
 // return a gif animation of the Conway's Game with the given delay in 100th of
 // a second between frames, and an initial delay equal to delay0 100th of a
-// second
-func (game *Conway) GetGIF(delay0, delay int) gif.GIF {
+// second. If average has a value strictly greater than 1 then the color index
+// of each cell (either alive of dead) is averaged over the last "average"
+// generations
+func (game *Conway) GetGIF(delay0, delay, average int) gif.GIF {
 
 	// create an array of images and delays between successive frames
 	var delays []int = make([]int, game.nbgenerations)
@@ -441,7 +477,50 @@ func (game *Conway) GetGIF(delay0, delay int) gif.GIF {
 		} else {
 			delays[index] = delay
 		}
-		images[index] = (*image.Paletted)(&generation.img)
+
+		// if no average has been requested then just copy the i-th generation
+		// to the GIF image straight ahead
+		if average <= 1 {
+			images[index] = (*image.Paletted)(&generation.img)
+		} else {
+
+			// otherwise, update the contents of each pixel with the average of
+			// the contents of the last "average" frames over a new image that
+			// is stored in the GIF. For this, all attributes of the image of
+			// this generation are copied but with a brand new slice of pixels
+			images[index] = &image.Paletted{
+				Pix:     make([]uint8, len(game.generations[index].img.Pix)),
+				Stride:  game.generations[index].img.Stride,
+				Rect:    game.generations[index].img.Rect,
+				Palette: game.generations[index].img.Palette}
+
+			// compute the first and last generation to use for computing the
+			// average of colors over all pixels
+			lower, upper := getInterval(0, game.nbgenerations-1, index, average)
+
+			// for all "logical" positions of this image
+			for x := 0; x <= game.width; x++ {
+				for y := 0; y <= game.height; y++ {
+
+					// get the color to use in pixel (x, y), as the average of
+					// the color index in the same position of all the previous
+					// "average" generations
+					indices := make([]uint8, 1+upper-lower)
+					for i := lower; i <= upper; i++ {
+						indices[i-lower] = game.generations[i].ColorIndexAt(x, y)
+					}
+					c := getAverage(indices)
+
+					// and now set the color using the aspect ratio of this frame
+					for xoffset := 0; xoffset < game.generations[index].ratio.X; xoffset++ {
+						for yoffset := 0; yoffset < game.generations[index].ratio.Y; yoffset++ {
+							images[index].SetColorIndex(x*game.generations[index].ratio.X+xoffset,
+								y*game.generations[index].ratio.Y+yoffset, c)
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// and now return the GIF image

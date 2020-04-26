@@ -40,6 +40,7 @@ var (
 	population      int
 	nbgenerations   int
 	model           string
+	average         int
 	want_model_help bool
 	want_version    bool
 )
@@ -75,6 +76,9 @@ func init() {
 
 	// command line argument for parsing the color model
 	flag.StringVar(&model, "model", "", "color model. Type --help-model to show additional help")
+
+	// command line argument for parsing the averaging option
+	flag.IntVar(&average, "average", 1, "it assigns a color to each cell which is the average of the color indices of the last n generations, with n being the value of average given here")
 
 	// whether additional help on color models was requested
 	flag.BoolVar(&want_model_help, "help-model", false, "shows additional information on color models")
@@ -285,14 +289,15 @@ func main() {
 		log.Fatalf(" It was not possible to initialize the first generation: %v", ok)
 	}
 
-	// Create a Conway's Game with this phase
+	// Create a Conway's Game with this generation
 	game := conway.NewConway(width, height, nbgenerations, initial)
 
 	// and run the Conway's Game over this initial generation
 	game.Run()
 
-	// get the image of the entire Conway's game
-	anim := game.GetGIF(delay0, delay)
+	// get the image of the entire Conway's game using the delays and average
+	// values provided by the user
+	anim := game.GetGIF(delay0, delay, average)
 
 	f, err := os.Create(filename)
 	if err != nil {
