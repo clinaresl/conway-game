@@ -81,6 +81,11 @@ It also provides the following functionalities:
 
 ## Examples
 
+A number of examples of the different functionalities provided by this tiny
+package are given below
+
+### Aspect ratio
+
 The most basic of all examples is given below:
 
 ``` sh
@@ -103,17 +108,18 @@ command:
               --model "gradient #000000:#ffff00:#ffff00"
 ```
 
-modifies the aspect ratio so that cells are four times larger than wider than
-tall:
+modifies the aspect ratio so that cells are four times wider:
 
 ![Example 1](pics/example-1.gif)
+
+### *Gradient* color model
 
 Just by making the color of the first generation equal to the background and
 using a different color for the last frame, it is possible to create a *fade-in*
 effect with the color model *gradient*:
 
 ```sh
-/conway-game --filename test.gif --generations 300 --width 300 --height 300 
+./conway-game --filename test.gif --generations 300 --width 300 --height 300 
              --population 25000 --xratio 2 --yratio 2 
              --model "gradient #000044:#000044:#ff0000"
 ```
@@ -124,7 +130,7 @@ Conversely, it is also possible to create a *fade-out* effect under the same
 color model just by inverting the second and third color as follows:
 
 ```sh
-/conway-game --filename test.gif --generations 300 --width 300 --height 300 
+./conway-game --filename test.gif --generations 300 --width 300 --height 300 
              --population 25000 --xratio 2 --yratio 2 
              --model "gradient #000044:#ff0000:#000044"
 ```
@@ -141,6 +147,32 @@ red, green and blue as shown below:
 ```
 
 ![Example 4](pics/example-4.gif)
+
+### *Radial* color model
+
+The radial color model assigns a color to each cell according to its distance to
+a given center with a comma-separated list of coordinates in `--model` after the
+combination of colors. The following example colors those cells near the right
+center of the grid with colors closer to the second one, and cells far from it
+get colors closer to the third:
+
+```sh
+./conway-game --filename test.gif --generations 300 --width 300 --height 300 
+              --population 10000 --xratio 2 --yratio 2 
+              --model "radial #002222:#ff0000:#008888;150,150"
+```
+
+![Example 5](pics/example-5.gif)
+
+Of course, the center can be placed anywhere on the grid:
+
+```sh
+./conway-game --filename test.gif --generations 300 --width 300 --height 300 
+              --population 10000 --xratio 2 --yratio 2 
+              --model "radial #000000:#ffffff:#000044;100,150"
+```
+
+![Example 6](pics/example-6.gif)
 
 
 
