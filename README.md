@@ -85,20 +85,33 @@ and the background in black:
 
 ![Example 0](pics/example-0.gif)
 
+As an example of the possibility of modifying the aspect ratio, the following
+command:
+
+```sh
+./conway-game --filename test.gif --generations 300 --width 150 --height 150 
+              --population 7500 --xratio 8 --yratio 2 
+              --model "gradient #000000:#ffff00:#ffff00"
+```
+
+modifies the aspect ratio so that cells are four times larger than wider than
+tall:
+
+![Example 1](pics/example-1.gif)
 
 # License #
 
-conway-game is free software: you can redistribute it and/or modify it under the
-terms of the GNU General Public License as published by the Free Software
+`conway-game` is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
 version.
 
-conway-game is distributed in the hope that it will be useful, but WITHOUT ANY
+`conway-game` is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with
-conway-game. If not, see <http://www.gnu.org/licenses/>.
+`conway-game`. If not, see <http://www.gnu.org/licenses/>.
 
 
 # Author #
