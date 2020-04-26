@@ -175,6 +175,54 @@ Of course, the center can be placed anywhere on the grid:
 ![Example 6](pics/example-6.gif)
 
 
+### Averaging frames
+
+It is also possible to compute the average color of the same cell over an
+arbitrary number of consecutive frames provided with `--average`. The effect is
+different depending on the color model used.
+
+Under the *gradient* color model, those cells that live for a short period of
+time get a dimmed color before dissapearing. Those living for a long period of
+time increase their color until they reach their maximum and then gradually
+dissapear:
+
+```sh
+./conway-game --filename test.gif --generations 500 --width 100 --height 100 
+              --population 3000 --xratio 5 --yratio 5
+              --model "gradient #000033:#ff0000:#ffff00" --average 3
+              --delay0 100 --delay 10 
+```
+
+To make the effect more noticeable, cells have been magnifying and they take 5x5
+pixels each. Additionally, the animation has been slowed down with a delay of 10
+hundreths of a second between each:
+
+![Example 7](pics/example-7.gif)
+
+Under the *radial* color model, the color of each cell is upper bounded
+according to its distance to the given center. However, cells far from it can be
+coloured with those used near the center. The reason is that those cells living
+for a short period of time get a *lower* average, which is given the same color
+as those cells with a *lower* distance to the center.
+
+```sh
+./conway-game --filename test.gif --generations 500 --width 100 --height 100 
+              --population 3000 --xratio 5 --yratio 5 
+              --model "radial #000033:#ff0000:#ffff00;0,0" --average 3 
+              --delay0 100 --delay 10 
+```
+
+Where the center has been located in the upper-left corner of the grid:
+
+```sh
+./conway-game --filename test.gif --generations 500 --width 100 --height 100 
+              --population 3000 --xratio 5 --yratio 5 
+              --model "radial #000033:#ff0000:#ffff00;0,0" --average 3
+              --delay0 100 --delay 10 
+```
+
+
+
 
 # License #
 
