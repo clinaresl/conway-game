@@ -154,8 +154,8 @@ func getColor(hexcolor string) color.Color {
 // getGradientPalette
 //
 // return the palette of colors to use for gradient palettes. It receives a
-// slice of strings which is the output of regexp matching the color model with
-// the user specification
+// slice of strings which is the output of the regexp matching the color model
+// with the user specification
 func getGradientPalette(match []string) (gpalette []color.Color) {
 
 	// extract all colors
@@ -175,7 +175,6 @@ func getGradientPalette(match []string) (gpalette []color.Color) {
 		r, g, b := uint8(float64(r2)+(i*(float64(r3)-float64(r2))/255.0)),
 			uint8(float64(g2)+(i*(float64(g3)-float64(g2))/255.0)),
 			uint8(float64(b2)+(i*(float64(b3)-float64(b2))/255.0))
-
 		gpalette = append(gpalette, color.RGBA{r, g, b, 255})
 	}
 
@@ -185,28 +184,43 @@ func getGradientPalette(match []string) (gpalette []color.Color) {
 
 // getPalette
 //
-// gets a palette from the colour model provided by the user
-func getPalette(model string) ([]color.Color, error) {
+// return the colour model chosen by the user, the center given (if any, by
+// default the point 0,0) and a palette of colours, along with an error if any
+// is found
+func getPalette(model string) (string, image.Point, []color.Color, error) {
 
 	// set up a regular expression to match the color model specifications
-	re := regexp.MustCompile(`\s*(gradient)\s+(\#[a-fA-F0-9]{6}):(\#[a-fA-F0-9]{6}):(\#[a-fA-F0-9]{6})$`)
+	re := regexp.MustCompile(`\s*(gradient|radial)\s+(\#[a-fA-F0-9]{6}):(\#[a-fA-F0-9]{6}):(\#[a-fA-F0-9]{6})(;(\d+),\s*(\d+))?$`)
 
 	// and match the given color model
 	match := re.FindStringSubmatch(model)
-	if len(match) != 5 {
-		return []color.Color{},
+	if len(match) == 0 {
+		return "", image.Point{},
+			[]color.Color{},
 			errors.New("Syntax error in the specification of the color model")
+	}
+
+	// get the center provided by the user, and if not is given, then use the
+	// default values 0, 0
+	var xcenter, ycenter int64
+	if match[6] != "" {
+		xcenter, _ = strconv.ParseInt(match[6], 10, 0)
+	}
+	if match[7] != "" {
+		ycenter, _ = strconv.ParseInt(match[7], 10, 0)
 	}
 
 	// and apply the given color model
 	switch {
-	case match[1] == "gradient":
-		return getGradientPalette(match), nil
+
+	// gradient color model
+	case match[1] == "gradient" || match[1] == "radial":
+		return match[1], image.Point{X: int(xcenter), Y: int(ycenter)}, getGradientPalette(match), nil
 	}
 
 	// in case the previous switch did not return a palette then an error
 	// occurred
-	return []color.Color{}, errors.New("Unknown model specification")
+	return "", image.Point{}, []color.Color{}, errors.New("Unknown model specification")
 }
 
 // main function
@@ -244,10 +258,13 @@ func main() {
 		contents[i], contents[j] = contents[j], contents[i]
 	})
 
-	// get a palette according to the user's specification
+	// get a palette according to the user's specification along with the colour
+	// model and the center used in the radial model
 	var ok error
+	var usermodel string
+	var center image.Point
 	var palette []color.Color
-	if palette, ok = getPalette(model); ok != nil {
+	if usermodel, center, palette, ok = getPalette(model); ok != nil {
 		log.Fatalf(" Unknown color model: %v", ok)
 	}
 
@@ -257,7 +274,13 @@ func main() {
 		Max: image.Point{X: width, Y: height}},
 		palette,
 		conway.AspectRatio{X: xratio, Y: yratio},
+		usermodel,
 		1, nbgenerations)
+
+	// and set the center. Note that the conway package will use it only in case
+	// the colour model requested by the user is radial
+	initial.SetCenter(center)
+
 	if ok := initial.Set(contents); ok != nil {
 		log.Fatalf(" It was not possible to initialize the first generation: %v", ok)
 	}
