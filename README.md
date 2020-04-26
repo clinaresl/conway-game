@@ -214,13 +214,7 @@ as those cells with a *lower* distance to the center.
 
 Where the center has been located in the upper-left corner of the grid:
 
-```sh
-./conway-game --filename test.gif --generations 500 --width 100 --height 100 
-              --population 3000 --xratio 5 --yratio 5 
-              --model "radial #000033:#ff0000:#ffff00;0,0" --average 3
-              --delay0 100 --delay 10 
-```
-
+![Example 8](pics/example-8.gif)
 
 
 
